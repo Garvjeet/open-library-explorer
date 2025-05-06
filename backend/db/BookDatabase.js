@@ -5,6 +5,8 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const DEFAULT_PAGINATION_LIMIT = 10;
+
 export class BookDatabase {
   constructor(dataFilePath = '../data/books.json') {
     this.books = [];
@@ -49,17 +51,12 @@ export class BookDatabase {
     return this.bookIndexById.get(id);
   }
 
-  getBooks({ limit = 10, after = null, genre, author, publishedYear }) {
-    let startIndex = 0;
-  
+  getBooks({ page = 1, limit, genre, author, publishedYear }) {
+    if (typeof page !== 'number') page = 1;
+    if (typeof page !== 'number' || limit <= 0) limit = DEFAULT_PAGINATION_LIMIT
+    const startIndex = Math.abs((page - 1) * limit);
+
     // Linear search for the index of the "after" id
-    if (after) {
-      const index = this.allIds.indexOf(after);
-      if (index !== -1) { 
-        startIndex = index + 1;
-      }
-    }
-  
     const idsSlice = this.allIds.slice(startIndex, startIndex + limit);
     let result = idsSlice.map(id => this.getBookById(id));
   

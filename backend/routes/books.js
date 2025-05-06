@@ -5,8 +5,8 @@ const router = express.Router();
 
 // GET /books?limit=10&after=<id>&genre=&author=&publishedYear=
 router.get('/', (req, res) => {
-  const { limit, after, genre, author, publishedYear } = req.query;
-  const result = db.getBooks({ limit: +limit || 10, after: Number(after), genre, author, publishedYear });
+  const { page, limit, genre, author, publishedYear } = req.query;
+  const result = db.getBooks({ page: +page || null, limit: +limit || null, genre, author, publishedYear });
   res.json(result);
 });
 
