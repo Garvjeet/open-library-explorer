@@ -17,7 +17,7 @@ function generateBooks(count = 100) {
       genre: `${getRandomItem(GENRES)}`,
       description: `${getRandomItem(DESCRIPTIONS)} ${i}`,
       publishedYear: Math.floor(Math.random() * 74) + 1950, // Random year between 1950 and 2024
-      coverUrl: `https://placehold.co/200x300?text=Book+No+${i}`
+      coverUrl: `https://placehold.co/200x300?text=Book+No.+${i}`
     });
   }
 
