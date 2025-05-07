@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DEFAULT_PAGINATION_LIMIT = 10;
+const DEFAULT_PAGINATION_LIMIT = 12;
 
 export class BookDatabase {
   constructor(dataFilePath = '../data/books.json') {
@@ -14,7 +14,7 @@ export class BookDatabase {
     this.genreIndex = new Map(); // Secondary index (genre -> array of book IDs)
     this.authorIndex = new Map(); // Secondary index (author -> array of book IDs)
     this.yearIndex = new Map(); // Secondary index (year -> array of book IDs)
-    this.allIds = []; // Primary index (clustered list of all record IDs)
+    this.filter_result_cache = {};
 
     this.loadData(dataFilePath);
     this.buildIndexes();
@@ -31,7 +31,6 @@ export class BookDatabase {
       const { id, genre, author, publishedYear } = book;
 
       this.bookIndexById.set(id, book);
-      this.allIds.push(id);
 
       // Genre index
       if (!this.genreIndex.has(genre)) this.genreIndex.set(genre, []);
@@ -56,18 +55,37 @@ export class BookDatabase {
     if (typeof page !== 'number' || limit <= 0) limit = DEFAULT_PAGINATION_LIMIT
     const startIndex = Math.abs((page - 1) * limit);
 
-    // Linear search for the index of the "after" id
-    const idsSlice = this.allIds.slice(startIndex, startIndex + limit);
-    let result = idsSlice.map(id => this.getBookById(id));
-  
-    // Additional filters using respective indexes.
-    if (genre) result = result.filter(b => b.genre === genre);
-    if (author) result = result.filter(b => b.author === author);
-    if (publishedYear) result = result.filter(b => b.publishedYear === +publishedYear);
-  
-    const nextCursor = idsSlice.length === limit ? idsSlice[idsSlice.length - 1] : null;
-  
-    return { results: result, nextCursor };
+    let books = null;
+
+    const cacheKey = this.getUniqueCacheKey({ genre, author, publishedYear });
+    if (this.filter_result_cache[cacheKey]) {
+      // If cache contains the cacheKey, read from cache and save DB call.
+      books = this.filter_result_cache[cacheKey];
+    } else {
+      books = this.books;
+      if (genre) books = books.filter(b => b.genre === genre);
+      if (author) books = books.filter(b => b.author === author);
+      if (publishedYear) books = books.filter(b => b.publishedYear === +publishedYear);
+      this.filter_result_cache[cacheKey] = books;
+      this.cacheFilterResult(cacheKey, books);
+    }
+
+    books = books.slice(startIndex, startIndex + limit);
+
+    return { books };
+  }
+
+  getUniqueCacheKey(filters = {}) {
+    // Get keys, sort them alphabetically
+    const sortedKeys = Object.keys(filters).sort();
+
+    // Build cache key by joining string values with hyphen
+    const cacheKey = sortedKeys.map(key => String(filters[key] ?? '')).join('-');
+    return cacheKey;
+  }
+
+  cacheFilterResult(cacheKey, filteredBooks) {
+   this.filter_result_cache[cacheKey] = filteredBooks;
   }
 
   getGenres() {

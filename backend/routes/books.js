@@ -3,11 +3,15 @@ import { db } from '../app.js';
 
 const router = express.Router();
 
-// GET /books?limit=10&after=<id>&genre=&author=&publishedYear=
+// GET /books?page=1&limit=10&genre=&author=&publishedYear=
 router.get('/', (req, res) => {
   const { page, limit, genre, author, publishedYear } = req.query;
   const result = db.getBooks({ page: +page || null, limit: +limit || null, genre, author, publishedYear });
-  res.json(result);
+
+  // Delay of 500 miliseconds to simulate real API call.
+  setTimeout(() => {
+    res.json(result);
+  }, 500);
 });
 
 // GET /books/:id
